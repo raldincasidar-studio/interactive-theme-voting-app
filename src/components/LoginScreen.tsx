@@ -47,6 +47,14 @@ export default function LoginScreen({ onSuccess }: { onSuccess: (student: Studen
         setLoading(false);
         return;
       }
+      
+      // Request fullscreen
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch((err) => {
+          console.warn("Fullscreen request failed:", err);
+        });
+      }
+      
       onSuccess(result.student);
     } catch {
       setError("Network error. Please try again.");
@@ -55,7 +63,7 @@ export default function LoginScreen({ onSuccess }: { onSuccess: (student: Studen
   }
 
   return (
-    <div className="flex min-h-[100dvh] flex-col justify-center px-6 py-10">
+    <div className="fixed inset-0 z-50 flex min-h-[100dvh] w-full flex-col justify-center overflow-hidden bg-black/50 backdrop-blur-sm px-6 py-10">
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
