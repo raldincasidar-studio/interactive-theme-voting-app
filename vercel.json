@@ -1,13 +1,6 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "env": {
-    "PORT": "3000",
-    "MONGO_URI": "@mongo_uri",
-    "SSAAM_MONGO_URI": "@ssaam_mongo_uri",
-    "JWT_SECRET": "@jwt_secret",
-    "FRONTEND_URL": "@frontend_url"
-  },
   "functions": {
     "api/index.js": {
       "memory": 512,
