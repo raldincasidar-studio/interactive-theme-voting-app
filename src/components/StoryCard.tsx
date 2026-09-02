@@ -45,6 +45,7 @@ export default function StoryCard({
   const [progress, setProgress] = useState(0);
   const [paused, setPaused] = useState(false);
   const [showProductTour, setShowProductTour] = useState(!student.voted && index === 0);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const rafRef = useRef<number | null>(null);
   const startRef = useRef<number>(0);
   const elapsedRef = useRef<number>(0);
@@ -55,13 +56,14 @@ export default function StoryCard({
     if (!isActive) {
       setImgIndex(0);
       setProgress(0);
+      setImageLoaded(false);
       elapsedRef.current = 0;
       return;
     }
   }, [isActive]);
 
   useEffect(() => {
-    if (!isActive || paused) {
+    if (!isActive || paused || showProductTour || !imageLoaded) {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       return;
     }
@@ -84,12 +86,13 @@ export default function StoryCard({
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive, paused, imgIndex, theme.images.length]);
+  }, [isActive, paused, imgIndex, theme.images.length, showProductTour, imageLoaded]);
 
   function goTo(next: number) {
     const clamped = Math.max(0, Math.min(theme.images.length - 1, next));
     elapsedRef.current = 0;
     setProgress(0);
+    setImageLoaded(false);
     setImgIndex(clamped);
   }
 
@@ -115,6 +118,7 @@ export default function StoryCard({
               className="h-full w-full object-cover"
               draggable={false}
               loading="lazy"
+              onLoad={() => setImageLoaded(true)}
             />
           </AnimatePresence>
           <div

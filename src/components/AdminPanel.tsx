@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, useRef, type FormEvent } from "react";
+import imageCompression from "browser-image-compression";
 import {
   apiAdminLogin,
   apiAdminThemes,
@@ -112,7 +113,6 @@ import {
   ChevronRight,
   ChevronDown,
   X,
-  ImageOff,
   ImagePlus,
   AlertCircle,
   CheckCircle2,
@@ -459,77 +459,181 @@ function IconPickerField({ value, onChange }: { value: string; onChange: (v: str
 }
 
 /* ------------------------------------------------------------------ */
-/* Image URL list with live previews                                   */
+/* Image gallery with upload, preview, compression, and base64         */
 /* ------------------------------------------------------------------ */
 
-function ImageThumb({ url }: { url: string }) {
-  const [error, setError] = useState(false);
-  useEffect(() => setError(false), [url]);
-  return (
-    <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white/10">
-      {url && !error ? (
-        <img
-          src={url}
-          alt=""
-          onError={() => setError(true)}
-          className="h-full w-full object-cover"
-        />
-      ) : (
-        <ImageOff className="h-4 w-4 text-white/30" />
-      )}
-    </div>
-  );
-}
-
-function ImagesField({
+function ImageGalleryField({
   images,
   onChange,
 }: {
   images: string[];
   onChange: (v: string[]) => void;
 }) {
-  const list = images.length ? images : [""];
-  const update = (i: number, v: string) => {
-    const copy = [...list];
-    copy[i] = v;
-    onChange(copy);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      // Compress image to 300kb
+      const options = {
+        maxSizeMB: 0.3, // 300kb
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+      };
+
+      const compressedFile = await imageCompression(file, options);
+
+      // Convert to base64
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64String = event.target?.result as string;
+        const newImages = [...images];
+        newImages.push(base64String);
+        onChange(newImages);
+        setCurrentIndex(newImages.length - 1);
+        // Reset file input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+      };
+      reader.readAsDataURL(compressedFile);
+    } catch (error) {
+      console.error("Image compression failed:", error);
+      alert("Failed to process image. Please try again.");
+    } finally {
+      setUploading(false);
+    }
   };
-  const remove = (i: number) => {
-    const copy = list.filter((_, idx) => idx !== i);
-    onChange(copy.length ? copy : [""]);
+
+  const removeImage = (index: number) => {
+    const newImages = images.filter((_, i) => i !== index);
+    onChange(newImages.length ? newImages : []);
+    setCurrentIndex(Math.max(0, Math.min(currentIndex, newImages.length - 1)));
   };
-  const add = () => onChange([...list, ""]);
+
+  const goToPrevious = () => {
+    if (images.length === 0) return;
+    setCurrentIndex((i) => (i - 1 + images.length) % images.length);
+  };
+
+  const goToNext = () => {
+    if (images.length === 0) return;
+    setCurrentIndex((i) => (i + 1) % images.length);
+  };
+
+  const currentImage = images[currentIndex];
 
   return (
-    <div className="space-y-2">
-      {list.map((url, i) => (
-        <div
-          key={i}
-          className="flex items-center gap-2.5 rounded-xl bg-white/5 p-2 ring-1 ring-white/10"
-        >
-          <ImageThumb url={url} />
-          <input
-            value={url}
-            onChange={(e) => update(i, e.target.value)}
-            placeholder="https://images.example.com/photo.jpg"
-            className={inputClass + " flex-1"}
-          />
-          <button
-            type="button"
-            onClick={() => remove(i)}
-            className="shrink-0 rounded-lg p-2 text-white/40 transition hover:bg-white/10 hover:text-red-300"
-          >
-            <X className="h-4 w-4" />
-          </button>
+    <div className="space-y-3">
+      {/* Preview slider with 9:16 aspect ratio */}
+      {images.length > 0 && (
+        <div className="space-y-2">
+          <div className="relative mx-auto max-w-4/5 overflow-hidden rounded-xl bg-white/5 ring-1 ring-white/10">
+            {/* 9:16 portrait aspect ratio container */}
+            <div className="relative w-full" style={{ aspectRatio: "9 / 16" }}>
+              {currentImage && (
+                <img
+                  src={currentImage}
+                  alt={`Preview ${currentIndex + 1}`}
+                  className="h-full w-full object-cover"
+                />
+              )}
+              {/* Navigation overlay */}
+              {images.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={goToPrevious}
+                    className="absolute left-1 top-1/2 -translate-y-1/2 rounded bg-black/50 p-1 text-white/70 transition hover:bg-black/70"
+                    title="Previous"
+                  >
+                    <ChevronLeft className="h-8 w-8" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={goToNext}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 rounded bg-black/50 p-1 text-white/70 transition hover:bg-black/70"
+                    title="Next"
+                  >
+                    <ChevronRight className="h-8 w-8" />
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Image counter and thumbnails */}
+          <div className="flex flex-col items-center gap-2">
+            <p className="text-xs text-white/60">
+              {currentIndex + 1} of {images.length}
+            </p>
+
+            {/* Thumbnail carousel */}
+            {images.length > 1 && (
+              <div className="flex gap-1.5">
+                {images.map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setCurrentIndex(i)}
+                    className={`h-6 w-6 shrink-0 rounded transition ${
+                      i === currentIndex
+                        ? "bg-fuchsia-500 ring-1 ring-fuchsia-400"
+                        : "bg-white/10 hover:bg-white/20"
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Remove button */}
+            <button
+              type="button"
+              onClick={() => removeImage(currentIndex)}
+              className="rounded-lg bg-red-500/20 px-2.5 py-1.5 text-xs font-medium text-red-300 transition hover:bg-red-500/30"
+            >
+              Remove current
+            </button>
+          </div>
         </div>
-      ))}
+      )}
+
+      {/* Upload input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileSelect}
+        disabled={uploading}
+        className="hidden"
+      />
+
       <button
         type="button"
-        onClick={add}
-        className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 py-2.5 text-sm font-medium text-white/60 transition hover:border-white/40 hover:text-white"
+        onClick={() => fileInputRef.current?.click()}
+        disabled={uploading}
+        className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 py-3 text-sm font-medium text-white/60 transition hover:border-white/40 hover:text-white disabled:opacity-50"
       >
-        <ImagePlus className="h-4 w-4" /> Add image URL
+        {uploading ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" /> Processing...
+          </>
+        ) : (
+          <>
+            <ImagePlus className="h-4 w-4" /> Add image (will compress to 300kb)
+          </>
+        )}
       </button>
+
+      {/* Info text */}
+      <p className="text-xs text-white/40">
+        Images will be automatically compressed to 300kb and converted to base64 format for storage.
+      </p>
     </div>
   );
 }
@@ -696,7 +800,7 @@ function ThemeFormModal({
             </FormSection>
 
             <FormSection title="Gallery images">
-              <ImagesField
+              <ImageGalleryField
                 images={theme.images}
                 onChange={(v) => onChange({ ...theme, images: v })}
               />

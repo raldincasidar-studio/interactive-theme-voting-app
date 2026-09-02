@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   ArrowRight,
   GraduationCap,
+  LogOut,
 } from "lucide-react";
 import type { Student } from "../data/mockData";
 
@@ -92,6 +93,17 @@ export default function WelcomeScreen({
         >
           Let's Get Started
           <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            localStorage.clear();
+            window.location.reload();
+          }}
+          className="group mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 py-3.5 text-sm font-bold text-purple-100 transition hover:bg-white/10 active:scale-[0.98]"
+        >
+          Logout
+          <LogOut className="h-4 w-4 transition group-hover:translate-x-1" />
         </button>
       </motion.div>
     </div>

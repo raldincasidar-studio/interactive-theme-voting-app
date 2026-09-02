@@ -34,7 +34,7 @@ export default function VotingScreen({
           }
         });
       },
-      { root: container, threshold: [0.6] }
+      { root: container, threshold: [0.6] },
     );
 
     cardRefs.current.forEach((el) => el && observer.observe(el));
@@ -84,7 +84,8 @@ export default function VotingScreen({
             exit={{ opacity: 0 }}
             className="pointer-events-none absolute inset-x-0 top-0 z-20"
             style={{
-              background: "linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 60%)",
+              background:
+                "linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 60%)",
             }}
           >
             <div className="flex flex-col items-center gap-2 px-4 py-6">
@@ -104,7 +105,8 @@ export default function VotingScreen({
             key={i}
             className="h-6 w-1 rounded-full transition-all duration-300"
             style={{
-              background: i === activeIndex ? "#e9d5ff" : "rgba(255,255,255,0.25)",
+              background:
+                i === activeIndex ? "#e9d5ff" : "rgba(255,255,255,0.25)",
             }}
           />
         ))}
@@ -120,20 +122,25 @@ export default function VotingScreen({
             transition={{ type: "spring", stiffness: 260, damping: 24 }}
             className="absolute inset-x-0 bottom-0 z-40 px-4 pb-5"
           >
-            <button
-              
-              className="mx-auto flex w-full max-w-sm items-center justify-between gap-3 rounded-2xl bg-gradient-to-r from-fuchsia-500 via-purple-500 to-indigo-500 px-5 py-4 shadow-2xl shadow-purple-950/60 active:scale-[0.98]"
-            >
+            <button className="mx-auto flex w-full max-w-sm items-center justify-between gap-3 rounded-2xl bg-gradient-to-r from-fuchsia-500 via-purple-500 to-indigo-500 px-5 py-4 shadow-2xl shadow-purple-950/60 active:scale-[0.98]">
               <span className="text-left text-sm text-white">
                 <span className="block text-[11px] font-medium uppercase tracking-widest text-white/70">
                   Your pick
                 </span>
-                <span className="font-display font-bold">{selectedTheme.name}</span>
+                <span className="font-display font-bold">
+                  {selectedTheme.name}
+                </span>
               </span>
-              <button onClick={() => setSelectedId(null)} className="flex items-center gap-1 rounded-xl px-3 py-2 text-xs font-bold text-red-300 backdrop-blur-md hover:bg-white/10 transition">
+              <button
+                onClick={() => setSelectedId(null)}
+                className="flex items-center gap-1 rounded-xl px-3 py-2 text-xs font-bold text-red-300 backdrop-blur-md hover:bg-white/10 transition"
+              >
                 Cancel
               </button>
-              <button onClick={() => onProceed(selectedTheme)} className="flex items-center gap-1 rounded-xl bg-white/20 px-3 py-2 text-xs font-bold text-white backdrop-blur-md hover:bg-white/30 transition">
+              <button
+                onClick={() => onProceed(selectedTheme)}
+                className="flex items-center gap-1 rounded-xl bg-white/20 px-3 py-2 text-xs font-bold text-white backdrop-blur-md hover:bg-white/30 transition"
+              >
                 Continue <ArrowRight className="h-3.5 w-3.5" />
               </button>
             </button>
