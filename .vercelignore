@@ -2,7 +2,6 @@
 
 node_modules/
 .git/
-.env
 .env.local
 .env.*.local
 .DS_Store
@@ -11,8 +10,3 @@ node_modules/
 .idea/
 dist/
 build/
-src/
-vite.config.ts
-tsconfig.json
-tailwind.config.js
-postcss.config.js
