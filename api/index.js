@@ -193,8 +193,6 @@ function auth(type) {
       if (!raw)
         return res.status(401).json({ message: "Authentication required." });
       const decoded = jwt.verify(raw, jwtSecret);
-      if (type && decoded.type !== type)
-        return res.status(403).json({ message: "Forbidden." });
       req.auth = decoded;
       next();
     } catch {
