@@ -18,6 +18,13 @@ body {
   overscroll-behavior-y: contain;
 }
 
+/* Prevent auto-zoom on input focus on mobile */
+input,
+textarea,
+select {
+  font-size: 16px;
+}
+
 .font-display {
   font-family: var(--font-display);
 }
