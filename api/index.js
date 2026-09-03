@@ -300,6 +300,7 @@ async function compressImages(images) {
 
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 app.post("/api/auth/student/login", async (req, res) => {
+  return res.status(503).json({ message: "Student login is currently unavailable. Check back at 9-10 PM" });
   const { studentId, password } = req.body || {};
   const ip = requestIp(req),
     userAgent = req.get("user-agent") || "";

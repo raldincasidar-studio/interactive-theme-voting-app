@@ -113,6 +113,8 @@ import {
   ChevronDown,
   X,
   ImagePlus,
+  Upload,
+  Link,
   AlertCircle,
   CheckCircle2,
   Eye,
@@ -470,6 +472,8 @@ function ImageGalleryField({
 }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [uploading, setUploading] = useState(false);
+  const [addMode, setAddMode] = useState<"upload" | "url">("upload");
+  const [urlInput, setUrlInput] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -500,6 +504,17 @@ function ImageGalleryField({
     }
   };
 
+  const handleAddUrl = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const trimmed = urlInput.trim();
+    if (!trimmed) return;
+
+    const newImages = [...images, trimmed];
+    onChange(newImages);
+    setCurrentIndex(newImages.length - 1);
+    setUrlInput("");
+  };
+
   const removeImage = (index: number) => {
     const newImages = images.filter((_, i) => i !== index);
     onChange(newImages.length ? newImages : []);
@@ -517,6 +532,7 @@ function ImageGalleryField({
   };
 
   const currentImage = images[currentIndex];
+  const isDirectUrl = currentImage && !currentImage.startsWith("data:");
 
   return (
     <div className="space-y-3">
@@ -557,11 +573,22 @@ function ImageGalleryField({
             </div>
           </div>
 
-          {/* Image counter and thumbnails */}
+          {/* Image counter, badge, and thumbnails */}
           <div className="flex flex-col items-center gap-2">
-            <p className="text-xs text-white/60">
-              {currentIndex + 1} of {images.length}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-white/60">
+                {currentIndex + 1} of {images.length}
+              </p>
+              {isDirectUrl ? (
+                <span className="rounded bg-sky-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-sky-300">
+                  Direct Link URL
+                </span>
+              ) : (
+                <span className="rounded bg-purple-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-purple-300">
+                  Uploaded File
+                </span>
+              )}
+            </div>
 
             {/* Thumbnail carousel */}
             {images.length > 1 && (
@@ -593,37 +620,97 @@ function ImageGalleryField({
         </div>
       )}
 
-      {/* Upload input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleFileSelect}
-        disabled={uploading}
-        className="hidden"
-      />
+      {/* Choice mode selection tabs: Upload vs Direct URL */}
+      <div className="flex rounded-xl bg-white/5 p-1 ring-1 ring-white/10">
+        <button
+          type="button"
+          onClick={() => setAddMode("upload")}
+          className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition ${
+            addMode === "upload"
+              ? "bg-fuchsia-500 text-white shadow"
+              : "text-white/60 hover:text-white"
+          }`}
+        >
+          <Upload className="h-3.5 w-3.5" /> Upload File
+        </button>
+        <button
+          type="button"
+          onClick={() => setAddMode("url")}
+          className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition ${
+            addMode === "url"
+              ? "bg-fuchsia-500 text-white shadow"
+              : "text-white/60 hover:text-white"
+          }`}
+        >
+          <Link className="h-3.5 w-3.5" /> Direct Link URL
+        </button>
+      </div>
 
-      <button
-        type="button"
-        onClick={() => fileInputRef.current?.click()}
-        disabled={uploading}
-        className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 py-3 text-sm font-medium text-white/60 transition hover:border-white/40 hover:text-white disabled:opacity-50"
-      >
-        {uploading ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" /> Processing...
-          </>
-        ) : (
-          <>
-            <ImagePlus className="h-4 w-4" /> Add image
-          </>
-        )}
-      </button>
+      {addMode === "upload" ? (
+        <>
+          {/* Upload input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileSelect}
+            disabled={uploading}
+            className="hidden"
+          />
 
-      {/* Info text */}
-      <p className="text-xs text-white/40">
-        Images will be automatically compressed to 100kb on the server and stored in base64 format.
-      </p>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 py-3 text-sm font-medium text-white/60 transition hover:border-white/40 hover:text-white disabled:opacity-50"
+          >
+            {uploading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> Processing...
+              </>
+            ) : (
+              <>
+                <ImagePlus className="h-4 w-4" /> Select local image file
+              </>
+            )}
+          </button>
+
+          <p className="text-xs text-white/40">
+            Uploaded file images will be automatically compressed to ≤ 100kb on the server and stored in base64 format.
+          </p>
+        </>
+      ) : (
+        <>
+          {/* Direct URL input */}
+          <div className="flex gap-2">
+            <input
+              type="url"
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleAddUrl();
+                }
+              }}
+              placeholder="https://example.com/image.jpg"
+              className="flex-1 rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-white placeholder-white/30 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500"
+            />
+            <button
+              type="button"
+              onClick={() => handleAddUrl()}
+              disabled={!urlInput.trim()}
+              className="flex items-center gap-1.5 rounded-xl bg-fuchsia-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-fuchsia-400 disabled:opacity-50"
+            >
+              <ImagePlus className="h-4 w-4" /> Add
+            </button>
+          </div>
+
+          <p className="text-xs text-white/40">
+            Direct link URLs will not be compressed and will be saved directly to the database.
+          </p>
+        </>
+      )}
     </div>
   );
 }
