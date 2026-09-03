@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState, useRef, type FormEvent } from "react";
-import imageCompression from "browser-image-compression";
 import {
   apiAdminLogin,
   apiAdminThemes,
@@ -479,16 +478,7 @@ function ImageGalleryField({
 
     setUploading(true);
     try {
-      // Compress image to 300kb
-      const options = {
-        maxSizeMB: 0.3, // 300kb
-        maxWidthOrHeight: 1920,
-        useWebWorker: true,
-      };
-
-      const compressedFile = await imageCompression(file, options);
-
-      // Convert to base64
+      // Convert to base64 – compression happens server-side on save
       const reader = new FileReader();
       reader.onload = (event) => {
         const base64String = event.target?.result as string;
@@ -501,9 +491,9 @@ function ImageGalleryField({
           fileInputRef.current.value = "";
         }
       };
-      reader.readAsDataURL(compressedFile);
+      reader.readAsDataURL(file);
     } catch (error) {
-      console.error("Image compression failed:", error);
+      console.error("Image read failed:", error);
       alert("Failed to process image. Please try again.");
     } finally {
       setUploading(false);
@@ -625,14 +615,14 @@ function ImageGalleryField({
           </>
         ) : (
           <>
-            <ImagePlus className="h-4 w-4" /> Add image (will compress to 300kb)
+            <ImagePlus className="h-4 w-4" /> Add image
           </>
         )}
       </button>
 
       {/* Info text */}
       <p className="text-xs text-white/40">
-        Images will be automatically compressed to 300kb and converted to base64 format for storage.
+        Images will be automatically compressed to 100kb on the server and stored in base64 format.
       </p>
     </div>
   );

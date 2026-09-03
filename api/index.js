@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "node:crypto";
+import sharp from "sharp";
 
 const app = express();
 const port = Number(process.env.PORT || 4000);
@@ -22,7 +23,7 @@ app.use(
     credentials: false,
   }),
 );
-app.use(express.json({ limit: "2mb" }));
+app.use(express.json({ limit: "50mb" }));
 
 const studentSchema = new mongoose.Schema(
   {
@@ -242,6 +243,61 @@ function mapSsaam(record) {
   };
 }
 
+/* ------------------------------------------------------------------ */
+/* Server-side image compression (target ≤ 100 KB per image)           */
+/* ------------------------------------------------------------------ */
+
+const MAX_IMAGE_BYTES = 100 * 1024; // 100 KB
+
+/**
+ * Compress a single base64 data-URI image to ≤ MAX_IMAGE_BYTES using sharp.
+ * Returns a JPEG base64 data-URI.  Non-data-URI strings (e.g. URLs) are
+ * returned unchanged.
+ */
+async function compressImageBase64(base64Str) {
+  // Skip non-base64 strings (external URLs, empty strings, etc.)
+  if (!base64Str || !base64Str.startsWith("data:")) return base64Str;
+
+  // Extract the raw buffer from the data URI
+  const matches = base64Str.match(/^data:([^;]+);base64,(.+)$/);
+  if (!matches) return base64Str;
+
+  const inputBuffer = Buffer.from(matches[2], "base64");
+
+  // If already small enough, keep as-is
+  if (inputBuffer.length <= MAX_IMAGE_BYTES) return base64Str;
+
+  // Resize to max 1920px on longest side first, then iteratively lower quality
+  let quality = 80;
+  let outputBuffer;
+
+  while (quality >= 20) {
+    outputBuffer = await sharp(inputBuffer)
+      .resize({ width: 1920, height: 1920, fit: "inside", withoutEnlargement: true })
+      .jpeg({ quality, mozjpeg: true })
+      .toBuffer();
+
+    if (outputBuffer.length <= MAX_IMAGE_BYTES) break;
+    quality -= 5;
+  }
+
+  // If still over budget after q=20, do one final aggressive resize
+  if (outputBuffer.length > MAX_IMAGE_BYTES) {
+    outputBuffer = await sharp(inputBuffer)
+      .resize({ width: 1280, height: 1280, fit: "inside", withoutEnlargement: true })
+      .jpeg({ quality: 20, mozjpeg: true })
+      .toBuffer();
+  }
+
+  return `data:image/jpeg;base64,${outputBuffer.toString("base64")}`;
+}
+
+/** Compress every image in an array, skipping URLs. */
+async function compressImages(images) {
+  if (!Array.isArray(images)) return images;
+  return Promise.all(images.map((img) => compressImageBase64(img)));
+}
+
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 app.post("/api/auth/student/login", async (req, res) => {
   const { studentId, password } = req.body || {};
@@ -366,6 +422,8 @@ app.post("/api/admin/themes", auth("admin"), async (req, res) => {
     return res
       .status(400)
       .json({ message: "Name and at least one image are required." });
+  // Compress all uploaded images server-side
+  payload.images = await compressImages(payload.images);
   res.status(201).json({ theme: await Theme.create(payload) });
 });
 app.put("/api/admin/themes/:id", auth("admin"), async (req, res) => {
@@ -374,6 +432,10 @@ app.put("/api/admin/themes/:id", auth("admin"), async (req, res) => {
   delete payload.id;
   if (payload.images && !Array.isArray(payload.images))
     return res.status(400).json({ message: "Images must be an array." });
+  // Compress all uploaded images server-side
+  if (payload.images) {
+    payload.images = await compressImages(payload.images);
+  }
   const theme = await Theme.findOneAndUpdate({ id: req.params.id }, payload, {
     new: true,
     runValidators: true,
