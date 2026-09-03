@@ -46,6 +46,7 @@ export default function StoryCard({
   const [paused, setPaused] = useState(false);
   const [showProductTour, setShowProductTour] = useState(!student.voted && index === 0);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const rafRef = useRef<number | null>(null);
   const startRef = useRef<number>(0);
   const elapsedRef = useRef<number>(0);
@@ -57,13 +58,14 @@ export default function StoryCard({
       setImgIndex(0);
       setProgress(0);
       setImageLoaded(false);
+      setIsExpanded(false);
       elapsedRef.current = 0;
       return;
     }
   }, [isActive]);
 
   useEffect(() => {
-    if (!isActive || paused || showProductTour || !imageLoaded) {
+    if (!isActive || paused || showProductTour || !imageLoaded || isExpanded) {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       return;
     }
@@ -86,7 +88,7 @@ export default function StoryCard({
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive, paused, imgIndex, theme.images.length, showProductTour, imageLoaded]);
+  }, [isActive, paused, imgIndex, theme.images.length, showProductTour, imageLoaded, isExpanded]);
 
   function goTo(next: number) {
     const clamped = Math.max(0, Math.min(theme.images.length - 1, next));
@@ -212,7 +214,48 @@ export default function StoryCard({
               {theme.name}
             </h2>
           </div>
-          <p className="text-sm leading-relaxed text-white/80">{theme.description}</p>
+          {(() => {
+            const desc = theme.description || "";
+            const isLong = desc.length > 100;
+            if (!isLong) {
+              return <p className="text-sm leading-relaxed text-white/80">{desc}</p>;
+            }
+            return (
+              <div className="space-y-1">
+                {isExpanded ? (
+                  <>
+                    <div className="max-h-36 overflow-y-auto no-scrollbar pr-1 text-sm leading-relaxed text-white/90">
+                      <p>{desc}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsExpanded(false);
+                      }}
+                      className="text-xs font-semibold text-fuchsia-300 hover:text-fuchsia-200 underline underline-offset-2 transition"
+                    >
+                      see less
+                    </button>
+                  </>
+                ) : (
+                  <p className="text-sm leading-relaxed text-white/80">
+                    {desc.slice(0, 100)}...{" "}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsExpanded(true);
+                      }}
+                      className="font-semibold text-fuchsia-300 hover:text-fuchsia-200 underline underline-offset-2 transition ml-0.5"
+                    >
+                      see more...
+                    </button>
+                  </p>
+                )}
+              </div>
+            );
+          })()}
 
           {student.voted ? (
             <button
