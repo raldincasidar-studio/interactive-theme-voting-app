@@ -300,7 +300,7 @@ async function compressImages(images) {
 
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 app.post("/api/auth/student/login", async (req, res) => {
-  return res.status(503).json({ message: "Student login is currently unavailable. Check back at 9-10 PM" });
+  // return res.status(503).json({ message: "Student login is currently unavailable. Check back at 9-10 PM" });
   const { studentId, password } = req.body || {};
   const ip = requestIp(req),
     userAgent = req.get("user-agent") || "";
@@ -371,7 +371,7 @@ app.get("/api/themes", auth("student"), async (_req, res) => {
   res.json({ themes });
 });
 app.post("/api/votes", auth("student"), async (req, res) => {
-  return res.status(503).json({ message: "Voting is currently closed. Check back at 9 PM" });
+  // return res.status(503).json({ message: "Voting is currently closed. Check back at 9 PM" });
   const { themeId } = req.body || {};
   if (!themeId) return res.status(400).json({ message: "Theme is required." });
   const student = await Student.findById(req.auth.sub);
