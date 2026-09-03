@@ -370,7 +370,7 @@ app.get("/api/themes", auth("student"), async (_req, res) => {
   res.json({ themes });
 });
 app.post("/api/votes", auth("student"), async (req, res) => {
-  return res.status(503).json({ message: "Voting is currently closed." });
+  return res.status(503).json({ message: "Voting is currently closed. Check back at 9 PM" });
   const { themeId } = req.body || {};
   if (!themeId) return res.status(400).json({ message: "Theme is required." });
   const student = await Student.findById(req.auth.sub);
