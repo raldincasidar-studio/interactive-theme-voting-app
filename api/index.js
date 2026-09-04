@@ -456,15 +456,23 @@ app.get("/api/admin/users", auth("admin"), async (req, res) => {
   const search = req.query.search || "";
   const program = req.query.program || "";
   const yearLevel = req.query.yearLevel || "";
+  const voted = req.query.voted || "";
   const query = {};
   if (search)
     query.$or = [
       { fullName: { $regex: search, $options: "i" } },
+      { lastName: { $regex: search, $options: "i" } },
+      { firstName: { $regex: search, $options: "i" } },
       { studentId: { $regex: search, $options: "i" } },
       { email: { $regex: search, $options: "i" } },
     ];
   if (program) query.program = program;
   if (yearLevel) query.yearLevel = yearLevel;
+  if (voted === "voted") {
+    query.votedThemeId = { $ne: null };
+  } else if (voted === "not_voted") {
+    query.votedThemeId = null;
+  }
   const [total, users] = await Promise.all([
     Student.countDocuments(query),
     Student.find(query)

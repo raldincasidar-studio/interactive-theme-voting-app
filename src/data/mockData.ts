@@ -1,6 +1,8 @@
 export interface Student {
   studentId: string;
   fullName: string;
+  firstName?: string;
+  lastName?: string;
   course?: string;
   yearLevel?: string;
   photo?: string;

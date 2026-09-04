@@ -34,7 +34,7 @@ export default function LoginScreen({ onSuccess }: { onSuccess: (student: Studen
       setError("Student ID must follow the format NN-LL-NNNNN (e.g. 26-A-12345).");
       return;
     }
-    if (password.length < 4) {
+    if (password.length < 1) {
       setError("Please enter your password.");
       return;
     }

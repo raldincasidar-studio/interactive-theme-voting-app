@@ -266,6 +266,8 @@ type StudentRow = {
   _id: string;
   studentId: string;
   fullName: string;
+  firstName?: string;
+  lastName?: string;
   course?: string;
   program?: string;
   yearLevel?: string;
@@ -966,6 +968,7 @@ function ThemesTab({
 
 function UsersTab({
   users,
+  themes,
   totalUsers,
   totalPages,
   page,
@@ -978,9 +981,12 @@ function UsersTab({
   setProgram,
   yearLevel,
   setYearLevel,
+  votedFilter,
+  setVotedFilter,
   onDelete,
 }: {
   users: StudentRow[];
+  themes: ThemeOption[];
   totalUsers: number;
   totalPages: number;
   page: number;
@@ -993,6 +999,8 @@ function UsersTab({
   setProgram: (s: string) => void;
   yearLevel: string;
   setYearLevel: (s: string) => void;
+  votedFilter: string;
+  setVotedFilter: (s: string) => void;
   onDelete: (id: string) => void;
 }) {
   const programs = useMemo(
@@ -1003,6 +1011,13 @@ function UsersTab({
     () => Array.from(new Set(users.map((u) => u.yearLevel).filter(Boolean))).sort(),
     [users],
   );
+  const themeMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    themes.forEach((t) => {
+      map[t.id] = t.name;
+    });
+    return map;
+  }, [themes]);
 
   return (
     <section className="space-y-4">
@@ -1017,14 +1032,23 @@ function UsersTab({
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
             <input
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
+              onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by name, ID, or email..."
               className={inputClass + " pl-9"}
             />
           </div>
+          <select
+            value={votedFilter}
+            onChange={(e) => {
+              setVotedFilter(e.target.value);
+              setPage(1);
+            }}
+            className={selectClass}
+          >
+            <option value="">All vote statuses</option>
+            <option value="voted">Voted</option>
+            <option value="not_voted">Not voted</option>
+          </select>
           <select
             value={program}
             onChange={(e) => {
@@ -1085,6 +1109,11 @@ function UsersTab({
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate font-bold">{u.fullName}</p>
+                    {u.lastName && (
+                      <p className="text-xs text-white/70">
+                        Last name: <span className="font-semibold text-white/90">{u.lastName}</span>
+                      </p>
+                    )}
                     <p className="text-xs text-white/50">{u.studentId}</p>
                   </div>
                   <button
@@ -1103,7 +1132,7 @@ function UsersTab({
                   </span>
                   {u.votedThemeId ? (
                     <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 font-medium text-emerald-300">
-                      Voted · {u.votedThemeId}
+                      Voted · {themeMap[u.votedThemeId] || u.votedThemeId}
                     </span>
                   ) : (
                     <span className="rounded-full bg-amber-500/15 px-2.5 py-1 font-medium text-amber-300">
@@ -1132,6 +1161,11 @@ function UsersTab({
                   <tr key={u._id} className="transition hover:bg-white/5">
                     <td className="px-4 py-3">
                       <p className="font-semibold">{u.fullName}</p>
+                      {u.lastName && (
+                        <p className="text-xs text-white/70">
+                          Last name: <span className="font-semibold text-white/90">{u.lastName}</span>
+                        </p>
+                      )}
                       <p className="text-xs text-white/50">{u.studentId}</p>
                     </td>
                     <td className="px-4 py-3 text-white/70">
@@ -1141,7 +1175,7 @@ function UsersTab({
                     <td className="px-4 py-3">
                       {u.votedThemeId ? (
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs font-medium text-emerald-300">
-                          <CheckCircle2 className="h-3 w-3" /> {u.votedThemeId}
+                          <CheckCircle2 className="h-3 w-3" /> {themeMap[u.votedThemeId] || u.votedThemeId}
                         </span>
                       ) : (
                         <span className="inline-flex items-center rounded-full bg-amber-500/15 px-2.5 py-1 text-xs font-medium text-amber-300">
@@ -1326,16 +1360,27 @@ export default function AdminPanel() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [program, setProgram] = useState("");
   const [yearLevel, setYearLevel] = useState("");
+  const [votedFilter, setVotedFilter] = useState("");
   const [totalUsers, setTotalUsers] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+
+  // Debounce search query by 350ms to prevent API spamming while typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   async function load() {
     try {
       const [themesData, usersData] = await Promise.all([
         apiAdminThemes(),
-        apiAdminUsers(page, limit, search, program, yearLevel),
+        apiAdminUsers(page, limit, debouncedSearch, program, yearLevel, votedFilter),
       ]);
       setThemes(themesData);
       setUsers(usersData.users);
@@ -1349,7 +1394,7 @@ export default function AdminPanel() {
   useEffect(() => {
     if (loggedIn) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loggedIn, page, limit, search, program, yearLevel]);
+  }, [loggedIn, page, limit, debouncedSearch, program, yearLevel, votedFilter]);
 
   // Auto-dismiss toasts
   useEffect(() => {
@@ -1591,6 +1636,7 @@ export default function AdminPanel() {
         {activeTab === "users" && (
           <UsersTab
             users={users}
+            themes={themes}
             totalUsers={totalUsers}
             totalPages={totalPages}
             page={page}
@@ -1603,6 +1649,8 @@ export default function AdminPanel() {
             setProgram={setProgram}
             yearLevel={yearLevel}
             setYearLevel={setYearLevel}
+            votedFilter={votedFilter}
+            setVotedFilter={setVotedFilter}
             onDelete={removeUser}
           />
         )}

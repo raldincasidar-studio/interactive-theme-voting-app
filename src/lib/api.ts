@@ -34,14 +34,15 @@ export async function apiAdminThemes() { return (await request<{themes:ThemeOpti
 export async function apiCreateTheme(theme: AdminThemePayload) { return request<{theme:ThemeOption}>("/api/admin/themes",{method:"POST",body:JSON.stringify(theme)},true); }
 export async function apiUpdateTheme(id:string,theme:Partial<AdminThemePayload>) { return request<{theme:ThemeOption}>(`/api/admin/themes/${id}`,{method:"PUT",body:JSON.stringify(theme)},true); }
 export async function apiDeleteTheme(id:string) { return request<{success:boolean}>(`/api/admin/themes/${id}`,{method:"DELETE"},true); }
-export async function apiAdminUsers(page = 1, limit = 10, search = '', program = '', yearLevel = '') {
+export async function apiAdminUsers(page = 1, limit = 10, search = '', program = '', yearLevel = '', voted = '') {
   const params = new URLSearchParams();
   params.set('page', String(page));
   params.set('limit', String(limit));
   if (search) params.set('search', search);
   if (program) params.set('program', program);
   if (yearLevel) params.set('yearLevel', yearLevel);
-  return request<{ users: Array<Student & { _id: string; votedThemeId?: string | null }>; total: number; page: number; limit: number; pages: number }>(`/api/admin/users?${params}`, {}, true);
+  if (voted) params.set('voted', voted);
+  return request<{ users: Array<Student & { _id: string; votedThemeId?: string | null; firstName?: string; lastName?: string }>; total: number; page: number; limit: number; pages: number }>(`/api/admin/users?${params}`, {}, true);
 }
 export async function apiDeleteUser(id:string) { return request<{success:boolean}>(`/api/admin/users/${id}`,{method:"DELETE"},true); }
 export async function apiChangeAdminPassword(currentPassword:string,newPassword:string) { return request<{success:boolean}>("/api/admin/settings/password",{method:"PUT",body:JSON.stringify({currentPassword,newPassword})},true); }
